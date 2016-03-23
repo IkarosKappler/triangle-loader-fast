@@ -1,0 +1,174 @@
+/**
+ * This class makes overlaying triangle patterns of regular triangles.
+ *
+ * It uses the create.js library.
+ *
+ * @author  Ikaros Kappler
+ * @date    2016-02-26
+ * @version 1.0.0
+ **/
+
+
+/**
+ * The constructor.
+ *
+ * The options object needs to have these members:
+ * @param {number}  options.size   
+ * @param {int}     options.width 
+ * @param {int}     options.height 
+ * @param {object}  options.origin { x, y }
+ * @param {boolean} options.up     Indicates if the first triangle is upside.
+ *  -
+ **/
+IKRS.Regular2DTriangulation = function( options ) {
+
+    IKRS.Object.call( this, options );
+
+    this.options = options;
+    if( typeof this.options.size == "undefined" )
+	this.options.size = 32;
+    if( typeof options.width == "undefined" )
+	this.options.width = 800;
+    if( typeof options.height == "undefined" )
+	this.options.height = 600;
+    if( typeof options.origin == "undefined" )
+	this.options.origin = { x : this.options.width/2.0, y : this.options.height/2.0 };
+    if( typeof options.up == "undefined" )
+	this.options.up = false;
+
+    this.matrix = new Array();
+    this._makeTriangles( this.options.size,
+			 this.options.origin			 
+		       );
+};
+
+IKRS.Regular2DTriangulation.prototype             = Object.create( IKRS.Object.prototype );
+IKRS.Regular2DTriangulation.prototype.constructor = IKRS.Regular2DTriangulation;
+
+
+/**
+ * Fill the area with triangles.
+ **/
+IKRS.Regular2DTriangulation.prototype._makeTriangles = function( size,
+								 origin
+							       ) {
+    console.debug( "_makeTriangles" );
+    console.debug( "createjs is defined? " + (typeof createjs=="undefined"?"no":"yes") );
+    
+    var tLength = this.options.size;
+    var tHeight = Math.sqrt( Math.pow(this.options.size,2) - Math.pow(this.options.size/2.0,2) );
+
+    var up = this.options.up; // true;
+    // Draw triangle rows down from origin
+    var vIndex = 0;
+    for( var y = this.options.origin.y; y < this.options.height; y+=tHeight ) {
+	this._makeTriangleRow( { x : this.options.origin.x,
+				 y : y // this.options.origin.y
+			       },
+			       tLength,
+			       tHeight,
+			       up,     // center triangle up?
+			       vIndex
+			     );
+	vIndex++;
+	up = !up;
+    }
+    // Draw triangle rows up from origin
+    up = !this.options.up; // false;
+    vIndex = -1;
+    for( var y = this.options.origin.y-tHeight; y >= 0; y-=tHeight ) {
+	this._makeTriangleRow( { x : this.options.origin.x,
+				 y : y // this.options.origin.y
+			       },
+			       tLength,
+			       tHeight,
+			       up,     // center triangle up?
+			       vIndex
+			     );
+	vIndex--;
+	up = !up;
+    }
+};
+
+IKRS.Regular2DTriangulation.prototype._makeTriangleRow = function( pos,
+								   tLength,
+								   tHeight,
+								   up,
+								   vIndex
+								 ) {
+    // Build row to the right
+    this.matrix[ vIndex ] = new Array();
+    var tmpUp  = up;
+    var hIndex = 0;
+    for( var x = pos.x; x <= this.options.width+tLength/2.0; x+= tLength/2.0 ) {	
+	var triangle = this._makeTriangleAt( { x : x,
+					       y : pos.y
+					     },
+					     tLength,
+					     tHeight,
+					     tmpUp
+					   );
+	hIndex++;
+	tmpUp = !tmpUp;
+	this.options.stage.addChild( triangle );	
+    }
+
+    // Build row to the left
+    //var tmpUp = up;
+    tmpUp  = !up;
+    hIndex = -1;
+    for( var x = pos.x-tLength/2.0; x >= 0; x-= tLength/2.0 ) {	
+	var triangle = this._makeTriangleAt( { x : x,
+					       y : pos.y
+					     },
+					     tLength,
+					     tHeight,
+					     tmpUp,
+					     hIndex
+					   );
+	hIndex--;
+	tmpUp = !tmpUp;
+	this.options.stage.addChild( triangle );	
+    }
+
+    
+    this.options.stage.update();
+
+    /*
+    var _self = this;
+    function handleTick(e) {
+	console.debug( "tick" );
+	_self.options.stage.update();
+    }
+    
+    createjs.Ticker.addEventListener('tick', handleTick);
+    */
+};
+
+IKRS.Regular2DTriangulation.prototype._makeTriangleAt = function( pos,
+								  tLength,
+								  tHeight,
+								  up
+								) {
+    var triangle = new createjs.Shape();
+    //triangle.graphics.beginStroke("black").setStrokeStyle(20);
+    triangle.graphics.beginFill( "#"+((1<<24)*Math.random()|0).toString(16) ); // Math.random() * 0xFFFFFF ); // "Red" );
+    if( up ) {
+	triangle.graphics
+	    .moveTo( pos.x              , pos.y - tHeight/2.0 )
+	    .lineTo( pos.x + tLength/2.0, pos.y + tHeight/2.0 )
+	    .lineTo( pos.x - tLength/2.0, pos.y + tHeight/2.0 )
+	    .lineTo( pos.x              , pos.y - tHeight/2.0 )
+	    .closePath();
+    } else { // down
+	triangle.graphics
+	    .moveTo( pos.x              , pos.y + tHeight/2.0 )
+	    .lineTo( pos.x - tLength/2.0, pos.y - tHeight/2.0 )
+	    .lineTo( pos.x + tLength/2.0, pos.y - tHeight/2.0 )
+	    .lineTo( pos.x              , pos.y + tHeight/2.0 )
+	    .closePath();
+    }
+    return triangle;
+};
+
+
